@@ -1,0 +1,15 @@
+{
+  "name": "printguard",
+  "version": "1.0.0",
+  "description": "PrintGuard Windows print spooler polling service with Active Directory enrichment.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "ldapjs": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
