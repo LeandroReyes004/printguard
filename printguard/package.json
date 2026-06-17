@@ -4,10 +4,15 @@
   "description": "PrintGuard Windows print spooler polling service with Active Directory enrichment.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start":      "node index.js",
+    "web":        "node web.js",
+    "test-user":  "node index.js --test",
+    "report":     "node report.js",
+    "report:hoy": "node report.js --today"
   },
   "dependencies": {
-    "ldapjs": "^3.0.0"
+    "express": "^4.19.2",
+    "ldapjs":  "^3.0.0"
   },
   "engines": {
     "node": ">=18"

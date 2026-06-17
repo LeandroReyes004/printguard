@@ -1,9 +1,9 @@
 const { execSync } = require('child_process');
 
 const PS_COMMAND = [
-  'Get-WmiObject Win32_PrintJob',
+  'Get-CimInstance Win32_PrintJob',
   '| Select-Object Name,Owner,TotalPages,HostPrintQueue,TimeSubmitted',
-  '| ConvertTo-Json',
+  '| ConvertTo-Json -Compress',
 ].join(' ');
 
 function stripDomain(owner) {

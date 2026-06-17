@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrintGuard — Panel de administración</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    font-size: 14px;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: white;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 58px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  header .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  header .subtitle { font-size: 12px; opacity: .75; flex: 1; }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.15); border-radius: 20px;
+    padding: 5px 12px; font-size: 12px; font-weight: 600;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-green { background: #4ade80; }
+  .dot-red   { background: #f87171; }
+  .dot-pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ---------- Nav tabs ---------- */
+  nav {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    padding: 0 20px;
+    gap: 4px;
+  }
+  .nav-tab {
+    padding: 14px 18px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 13px;
+    transition: color .15s, border-color .15s;
+    user-select: none;
+  }
+  .nav-tab:hover { color: #2563eb; }
+  .nav-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+  /* ---------- Layout ---------- */
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  /* ---------- Stats row ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .stat-label { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing:.5px; margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: #1e3a8a; }
+
+  /* ---------- Form ---------- */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; letter-spacing:.2px; }
+  .field input {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #d1d5db; border-radius: 7px;
+    font-size: 14px; color: #111;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+  .field small { display: block; color: #9ca3af; font-size: 11px; margin-top: 5px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 7px;
+    cursor: pointer; font-size: 13px; font-weight: 700;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary   { background: #2563eb; color: white; }
+  .btn-secondary { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .btn-danger    { background: #dc2626; color: white; }
+  .btn-success   { background: #16a34a; color: white; }
+  .btn:hover { opacity: .88; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+  /* ---------- Alert ---------- */
+  .alert {
+    padding: 12px 16px; border-radius: 7px;
+    font-size: 13px; margin-top: 14px; font-weight: 500;
+  }
+  .alert-ok    { background: #dcfce7; color: #15803d; }
+  .alert-error { background: #fee2e2; color: #b91c1c; }
+  .alert-info  { background: #dbeafe; color: #1d4ed8; }
+
+  /* ---------- Table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: #f9fafb; text-align: left;
+    padding: 11px 14px; font-size: 11px;
+    font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 2px solid #e5e7eb; white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+  tr:hover td { background: #f8faff; }
+  tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+  }
+  .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-gray  { background: #f3f4f6; color: #6b7280; }
+
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .toolbar input[type=text] {
+    padding: 8px 12px; border: 1px solid #d1d5db;
+    border-radius: 7px; font-size: 13px; width: 200px;
+  }
+  .toolbar input[type=text]:focus { outline: none; border-color: #2563eb; }
+  .toolbar label { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .toolbar .spacer { flex: 1; }
+  .refresh-note { font-size: 11px; color: #9ca3af; }
+
+  /* ---------- Empty ---------- */
+  .empty-state {
+    text-align: center; padding: 50px 20px; color: #9ca3af;
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ---------- Test result ---------- */
+  pre#test-out {
+    background: #0f172a; color: #a5f3fc; border-radius: 8px;
+    padding: 16px; font-size: 12px; margin-top: 14px;
+    white-space: pre-wrap; word-break: break-all;
+    display: none; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">🖨 PrintGuard</div>
+  <div class="subtitle">Monitor de impresión — Panel de administración</div>
+  <div class="status-pill">
+    <span class="dot dot-gray dot-pulse" id="svc-dot"></span>
+    <span id="svc-label">Verificando...</span>
+  </div>
+</header>
+
+<!-- ===== TABS ===== -->
+<nav>
+  <div class="nav-tab active" id="tab-btn-config"  onclick="showTab('config')">⚙️ Configuración</div>
+  <div class="nav-tab"        id="tab-btn-jobs"    onclick="showTab('jobs')">📋 Trabajos recientes</div>
+  <div class="nav-tab"        id="tab-btn-report"  onclick="showTab('report')">📊 Reporte por usuario</div>
+</nav>
+
+<main>
+
+  <!-- ========== CONFIG ========== -->
+  <div class="panel active" id="panel-config">
+
+    <!-- Stats rápidas -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total trabajos</div>
+        <div class="stat-value" id="stat-jobs">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Hoy</div>
+        <div class="stat-value" id="stat-today">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Estado del servicio</div>
+        <div class="stat-value" id="stat-status" style="font-size:16px;margin-top:6px">—</div>
+      </div>
+    </div>
+
+    <!-- Active Directory -->
+    <div class="card">
+      <div class="card-title">Conexión a Active Directory</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>URL del servidor AD (LDAP_URL)</label>
+          <input type="text" id="LDAP_URL" placeholder="ldap://192.168.1.10:389">
+          <small>Dejar vacío si no usas Active Directory por ahora</small>
+        </div>
+        <div class="field">
+          <label>Base DN (LDAP_BASE_DN)</label>
+          <input type="text" id="LDAP_BASE_DN" placeholder="DC=tudominio,DC=com">
+        </div>
+        <div class="field">
+          <label>Usuario de servicio (LDAP_USER)</label>
+          <input type="text" id="LDAP_USER" placeholder="usuario@tudominio.com">
+          <small>⚠️ Formato UPN (usuario@dominio.com) — no usar DOMINIO\usuario</small>
+        </div>
+        <div class="field">
+          <label>Contraseña (LDAP_PASS)</label>
+          <input type="password" id="LDAP_PASS" placeholder="••••••••">
+        </div>
+      </div>
+    </div>
+
+    <!-- Servicio -->
+    <div class="card">
+      <div class="card-title">Configuración del servicio</div>
+      <div style="max-width:320px">
+        <div class="field">
+          <label>Intervalo de consulta (POLL_INTERVAL_MS)</label>
+          <input type="number" id="POLL_INTERVAL_MS" placeholder="5000" min="1000" max="60000">
+          <small>Milisegundos — 5000 = cada 5 segundos (recomendado)</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary"   onclick="saveConfig()">💾 Guardar configuración</button>
+      <button class="btn btn-danger"    onclick="restartService()">🔄 Reiniciar servicio</button>
+    </div>
+    <div id="msg-config"></div>
+
+    <!-- Probar usuario -->
+    <div class="card" style="margin-top:22px">
+      <div class="card-title">Probar con mi usuario</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="margin:0;flex:1;min-width:200px">
+          <label>Nombre de usuario (sAMAccountName)</label>
+          <input type="text" id="test-uname" placeholder="leandro">
+        </div>
+        <button class="btn btn-success" onclick="runTest()" style="margin-bottom:1px">▶ Probar</button>
+      </div>
+      <pre id="test-out"></pre>
+    </div>
+  </div>
+
+  <!-- ========== JOBS ========== -->
+  <div class="panel" id="panel-jobs">
+    <div class="toolbar">
+      <label>
+        <input type="checkbox" id="jobs-today" onchange="loadJobs()">
+        Solo hoy
+      </label>
+      <span class="spacer"></span>
+      <span class="refresh-note" id="jobs-refresh-note">—</span>
+      <button class="btn btn-secondary" onclick="loadJobs()" style="padding:7px 14px">↻ Actualizar</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Usuario</th>
+              <th>Nombre completo</th>
+              <th>Departamento</th>
+              <th>Impresora</th>
+              <th class="num">Páginas</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-body">
+            <tr><td colspan="6" class="empty-state"><div class="icon">⏳</div><p>Cargando...</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== REPORT ========== -->
+  <div class="panel" id="panel-report">
+    <div class="toolbar">
+      <label>
+        <input type="checkbox" id="rep-today" onchange="loadReport()">
+        Solo hoy
+      </label>
+      <input type="text" id="rep-user" placeholder="Filtrar usuario..." oninput="loadReport()">
+      <span class="spacer"></span>
+      <button class="btn btn-secondary" onclick="loadReport()" style="padding:7px 14px">↻ Actualizar</button>
+    </div>
+
+    <!-- Totales -->
+    <div class="stats" style="margin-bottom:14px" id="rep-stats"></div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre completo</th>
+              <th>Departamento</th>
+              <th class="num">Trabajos</th>
+              <th class="num">Páginas</th>
+              <th>Impresoras</th>
+              <th>Último trabajo</th>
+            </tr>
+          </thead>
+          <tbody id="rep-body">
+            <tr><td colspan="7" class="empty-state"><div class="icon">⏳</div><p>Cargando...</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── Tabs ───────────────────────────────────────────────────────────────────
+function showTab(name) {
+  ['config','jobs','report'].forEach(t => {
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+    document.getElementById('panel-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'jobs')   loadJobs();
+  if (name === 'report') loadReport();
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('es', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+function showMsg(id, type, text) {
+  document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${esc(text)}</div>`;
+}
+
+// ─── Status bar ─────────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    const d = await fetch('/api/status').then(r => r.json());
+    const dot   = document.getElementById('svc-dot');
+    const label = document.getElementById('svc-label');
+    if (d.serviceOk) {
+      dot.className = 'dot dot-green';
+      label.textContent = 'Servicio activo';
+    } else {
+      dot.className = 'dot dot-red dot-pulse';
+      label.textContent = 'Servicio detenido';
+    }
+    document.getElementById('stat-status').textContent = d.serviceOk ? '✅ Activo' : '❌ Detenido';
+    document.getElementById('stat-jobs').textContent   = d.totalJobs;
+
+    const today = new Date().toISOString().slice(0,10);
+    const jobs  = await fetch('/api/jobs?today=true').then(r => r.json());
+    document.getElementById('stat-today').textContent = jobs.length;
+  } catch {}
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+async function loadConfig() {
+  const cfg = await fetch('/api/config').then(r => r.json()).catch(() => ({}));
+  ['LDAP_URL','LDAP_BASE_DN','LDAP_USER','LDAP_PASS','POLL_INTERVAL_MS'].forEach(k => {
+    const el = document.getElementById(k);
+    if (el && cfg[k] !== undefined) el.value = cfg[k];
+  });
+}
+
+async function saveConfig() {
+  const body = {};
+  ['LDAP_URL','LDAP_BASE_DN','LDAP_USER','LDAP_PASS','POLL_INTERVAL_MS'].forEach(k => {
+    body[k] = document.getElementById(k).value.trim();
+  });
+  const r = await fetch('/api/config', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  }).then(r => r.json()).catch(e => ({ ok:false, message: e.message }));
+  showMsg('msg-config', r.ok ? 'ok' : 'error', r.message);
+}
+
+async function restartService() {
+  showMsg('msg-config','info','Reiniciando servicio...');
+  const r = await fetch('/api/restart', { method:'POST' }).then(r => r.json()).catch(e => ({ ok:false, message:e.message }));
+  showMsg('msg-config', r.ok ? 'ok' : 'error', r.message);
+  loadStatus();
+}
+
+async function runTest() {
+  const username = document.getElementById('test-uname').value.trim();
+  if (!username) return;
+  const pre = document.getElementById('test-out');
+  pre.style.display = 'block';
+  pre.textContent = 'Consultando Active Directory...';
+  const r = await fetch('/api/test/' + encodeURIComponent(username)).then(r => r.json()).catch(e => ({ error: e.message }));
+  const lines = [
+    `Usuario:          ${r.username}`,
+    `Nombre completo:  ${r.fullName}`,
+    `Departamento:     ${r.department}`,
+    `AD respondió OK:  ${r.ad_ok ? '✅ SÍ' : '❌ NO — revisar credenciales LDAP'}`,
+  ];
+  if (r.error) lines.push(`Error:            ${r.error}`);
+  pre.textContent = lines.join('\n');
+}
+
+// ─── Jobs ────────────────────────────────────────────────────────────────────
+async function loadJobs() {
+  const today = document.getElementById('jobs-today').checked;
+  const jobs  = await fetch('/api/jobs?today=' + today).then(r => r.json()).catch(() => []);
+  const tbody = document.getElementById('jobs-body');
+
+  document.getElementById('jobs-refresh-note').textContent =
+    `Actualizado: ${new Date().toLocaleTimeString('es')} — ${jobs.length} trabajos`;
+
+  if (!jobs.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <div class="icon">🖨️</div>
+      <p>No hay trabajos registrados aún.<br>Imprime algo y aparecerá aquí en segundos.</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = jobs.map(j => `
+    <tr>
+      <td style="white-space:nowrap">${fmtDate(j.timestamp)}</td>
+      <td><span class="badge badge-blue">${esc(j.username)}</span></td>
+      <td>${esc(j.fullName)}</td>
+      <td><span class="badge badge-gray">${esc(j.department)}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(j.printer)}</td>
+      <td class="num">${j.pages}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── Report ──────────────────────────────────────────────────────────────────
+async function loadReport() {
+  const today      = document.getElementById('rep-today').checked;
+  const filterUser = document.getElementById('rep-user').value.trim();
+  const params     = new URLSearchParams({ today, user: filterUser });
+  const data       = await fetch('/api/report?' + params).then(r => r.json()).catch(() => ({ users:[], totalJobs:0, totalPages:0 }));
+
+  document.getElementById('rep-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Usuarios únicos</div><div class="stat-value">${data.users.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Total trabajos</div><div class="stat-value">${data.totalJobs}</div></div>
+    <div class="stat-card"><div class="stat-label">Total páginas</div><div class="stat-value">${data.totalPages}</div></div>
+  `;
+
+  const tbody = document.getElementById('rep-body');
+  if (!data.users.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <div class="icon">📭</div><p>No hay datos para mostrar.</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.users.map(u => `
+    <tr>
+      <td><span class="badge badge-blue">${esc(u.username)}</span></td>
+      <td>${esc(u.fullName)}</td>
+      <td><span class="badge badge-gray">${esc(u.department)}</span></td>
+      <td class="num">${u.jobs}</td>
+      <td class="num">${u.pages}</td>
+      <td style="font-size:12px;color:#6b7280;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u.printers.join(', ')) || '—'}</td>
+      <td style="white-space:nowrap">${fmtDate(u.lastJob)}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+loadConfig();
+loadStatus();
+loadJobs();
+setInterval(loadStatus, 15000);
+setInterval(() => {
+  if (document.getElementById('panel-jobs').classList.contains('active')) loadJobs();
+}, 10000);
+</script>
+</body>
+</html>
